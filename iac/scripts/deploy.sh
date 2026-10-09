@@ -11,6 +11,7 @@ stack_apply transversal "${ENV}"
 stack_apply franchise-api "${ENV}" -var="container_image_tag=${IMAGE_TAG}"
 
 API_URL="$("${TF}" -chdir="${IAC_DIR}/stacks/franchise-api" output -raw api_url)"
+echo "FRANCHISE_API_URL=${API_URL}" > "${REPO_DIR}/docs/bruno/.env"
 echo
 echo "API:     ${API_URL}"
 echo "Swagger: ${API_URL}/swagger-ui.html"
