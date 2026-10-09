@@ -1,7 +1,43 @@
-FROM eclipse-temurin:25-jdk-alpine
-VOLUME /tmp
-COPY *.jar franchise-api.jar
-ENV JAVA_OPTS=" -Xshareclasses:name=cacheapp,cacheDir=/cache,nonfatal -XX:+UseContainerSupport -XX:MaxRAMPercentage=70 -Djava.security.egd=file:/dev/./urandom"
-# Replace with a non-root user to avoid running the container with excessive privileges
-USER appuser
-ENTRYPOINT [ "/bin/sh", "-c", "/opt/java/openjdk/bin/java $JAVA_OPTS  -jar /franchise-api.jar" ]
+# syntax=docker/dockerfile:1.7
+# Build from the repository root:  docker build -f deployment/Dockerfile -t franchise-api .
+
+# ---- 1. Build: compiles inside the image, so the result does not depend on the host toolchain ----
+FROM eclipse-temurin:25-jdk-alpine AS build
+WORKDIR /workspace
+COPY gradlew settings.gradle build.gradle main.gradle gradle.properties lombok.config ./
+COPY gradle ./gradle
+COPY domain ./domain
+COPY infrastructure ./infrastructure
+COPY applications ./applications
+# Tests run in CI (they need a container runtime for Testcontainers); the image build only packages.
+RUN --mount=type=cache,target=/root/.gradle \
+    sh ./gradlew :app-service:bootJar --no-daemon --no-configuration-cache -x test
+
+# ---- 2. Layers: dependencies change less often than application code, so they get their own layer ----
+FROM eclipse-temurin:25-jdk-alpine AS layers
+WORKDIR /layers
+COPY --from=build /workspace/applications/app-service/build/libs/franchise-api.jar franchise-api.jar
+RUN java -Djarmode=tools -jar franchise-api.jar extract --layers --destination extracted
+
+# ---- 3. Runtime: JRE only, non-root user ----
+FROM eclipse-temurin:25-jre-alpine AS runtime
+RUN addgroup -S app && adduser -S -G app app
+WORKDIR /app
+COPY --from=layers --chown=app:app /layers/extracted/dependencies/ ./
+COPY --from=layers --chown=app:app /layers/extracted/spring-boot-loader/ ./
+COPY --from=layers --chown=app:app /layers/extracted/snapshot-dependencies/ ./
+COPY --from=layers --chown=app:app /layers/extracted/application/ ./
+USER app
+
+# Training run for the JDK 25 AOT cache: the context starts and exits right after refresh, recording the
+# loaded and linked classes so real startups (e.g. tasks added by auto scaling) are faster.
+# No database is needed because the pool connects lazily and the schema step is skipped here.
+RUN DB_INITIALIZE_SCHEMA=false java -XX:AOTCacheOutput=franchise-api.aot -Dspring.context.exit=onRefresh \
+    -jar franchise-api.jar
+
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError --enable-native-access=ALL-UNNAMED" \
+    TZ="America/Bogota"
+EXPOSE 8080
+HEALTHCHECK --interval=15s --timeout=3s --start-period=40s --retries=3 \
+    CMD wget -qO- http://localhost:8080/actuator/health/liveness || exit 1
+ENTRYPOINT ["java", "-XX:AOTCache=franchise-api.aot", "-jar", "franchise-api.jar"]
