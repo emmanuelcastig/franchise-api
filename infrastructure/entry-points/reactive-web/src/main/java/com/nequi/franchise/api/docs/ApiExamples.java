@@ -70,7 +70,6 @@ public class ApiExamples {
 
     public static final String INVALID_REQUEST = """
             {
-              "type": "about:blank",
               "title": "Bad Request",
               "status": 400,
               "detail": "The request is invalid, please verify the data",
@@ -83,7 +82,6 @@ public class ApiExamples {
 
     public static final String FRANCHISE_NOT_FOUND = """
             {
-              "type": "about:blank",
               "title": "Not Found",
               "status": 404,
               "detail": "The franchise does not exist",
@@ -95,7 +93,6 @@ public class ApiExamples {
 
     public static final String BRANCH_NOT_FOUND = """
             {
-              "type": "about:blank",
               "title": "Not Found",
               "status": 404,
               "detail": "The branch does not exist in the given franchise",
@@ -107,7 +104,6 @@ public class ApiExamples {
 
     public static final String PRODUCT_NOT_FOUND = """
             {
-              "type": "about:blank",
               "title": "Not Found",
               "status": 404,
               "detail": "The product does not exist in the given branch",
@@ -119,7 +115,6 @@ public class ApiExamples {
 
     public static final String FRANCHISE_NAME_CONFLICT = """
             {
-              "type": "about:blank",
               "title": "Conflict",
               "status": 409,
               "detail": "A franchise with the same name already exists",
@@ -131,7 +126,6 @@ public class ApiExamples {
 
     public static final String BRANCH_NAME_CONFLICT = """
             {
-              "type": "about:blank",
               "title": "Conflict",
               "status": 409,
               "detail": "A branch with the same name already exists in the franchise",
@@ -143,7 +137,6 @@ public class ApiExamples {
 
     public static final String PRODUCT_NAME_CONFLICT = """
             {
-              "type": "about:blank",
               "title": "Conflict",
               "status": 409,
               "detail": "A product with the same name already exists in the branch",
@@ -155,7 +148,6 @@ public class ApiExamples {
 
     public static final String SERVICE_UNAVAILABLE = """
             {
-              "type": "about:blank",
               "title": "Service Unavailable",
               "status": 503,
               "detail": "The service is temporarily unavailable, please try again later",
