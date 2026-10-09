@@ -32,11 +32,17 @@ subprojects {
     }
 
 
+    // -parameters keeps method parameter names in bytecode; Spring Data needs them to bind named @Query parameters.
+    tasks.withType(JavaCompile).configureEach {
+        options.compilerArgs.add('-parameters')
+    }
+
     test {
         useJUnitPlatform()
     }
 
     dependencies {
+        implementation platform('software.amazon.awssdk:bom:2.55.11')
         implementation 'io.projectreactor:reactor-core'
         implementation 'io.projectreactor.addons:reactor-extra'
 
@@ -95,12 +101,6 @@ tasks.register('jacocoMergedReport', JacocoReport) {
         csv.setRequired false
         html.setRequired true
     }
-}
-
-tasks.withType(JavaCompile).configureEach {
-    options.compilerArgs = [
-            '-Amapstruct.suppressGeneratorTimestamp=true'
-    ]
 }
 
 tasks.named('wrapper') {

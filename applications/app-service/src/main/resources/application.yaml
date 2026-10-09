@@ -1,14 +1,87 @@
-##Spring Configuration
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
+  shutdown: "graceful"
+
 spring:
   application:
-    name: franchise-api
-  devtools:
-    add-properties: false
-  h2:
-    console:
-      enabled: true
-      path: /h2
+    name: "franchise-api"
   profiles:
-    include:
+    active: ${SPRING_PROFILES_ACTIVE:default}
+  lifecycle:
+    timeout-per-shutdown-phase: "20s"
+  sql:
+    init:
+      mode: "always"
+      schema-locations: "classpath:db/schema.sql"
+
+adapters:
+  r2dbc:
+    host: ${DB_HOST:localhost}
+    port: ${DB_PORT:5432}
+    database: ${DB_NAME:franchise}
+    schema: ${DB_SCHEMA:public}
+    ssl-mode: ${DB_SSL_MODE:require}
+    connect-timeout: "5s"
+    # Server-side guard: stops queries that keep running after the time limiter has cancelled the client call.
+    statement-timeout: "3s"
+    pool:
+      initial-size: ${DB_POOL_INITIAL_SIZE:2}
+      max-size: ${DB_POOL_MAX_SIZE:10}
+      max-idle-time: "10m"
+      # Recycling connections lets rotated credentials take effect without a restart.
+      max-life-time: "30m"
+      max-acquire-time: "3s"
+    credentials:
+      # Only the secret NAME is configuration; the credentials themselves never leave Secrets Manager.
+      secret-name: ${DB_SECRET_NAME:}
+  secrets-manager:
+    region: ${AWS_REGION:us-east-1}
+    cache-seconds: ${SECRETS_CACHE_SECONDS:300}
+    cache-size: 10
+
+resilience4j:
+  timelimiter:
+    instances:
+      database:
+        timeout-duration: ${DB_TIMEOUT:2s}
+        cancel-running-future: true
+  circuitbreaker:
+    instances:
+      database:
+        sliding-window-type: "COUNT_BASED"
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 50
+        slow-call-duration-threshold: "1s"
+        slow-call-rate-threshold: 80
+        wait-duration-in-open-state: "15s"
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        # Constraint violations are business outcomes (e.g. duplicated name), not signs of an unhealthy database.
+        ignore-exceptions:
+          - "org.springframework.dao.DataIntegrityViolationException"
+  retry:
+    instances:
+      database:
+        max-attempts: 3
+        wait-duration: "100ms"
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        # Only transient failures are retried; CallNotPermittedException (open circuit) fails fast.
+        retry-exceptions:
+          - "org.springframework.dao.TransientDataAccessException"
+          - "org.springframework.dao.DataAccessResourceFailureException"
+          - "java.util.concurrent.TimeoutException"
+
+---
+spring:
+  config:
+    activate:
+      on-profile: "local"
+
+adapters:
+  r2dbc:
+    ssl-mode: "disable"
+    credentials:
+      username: ${DB_USERNAME:franchise}
+      password: ${DB_PASSWORD:franchise}
