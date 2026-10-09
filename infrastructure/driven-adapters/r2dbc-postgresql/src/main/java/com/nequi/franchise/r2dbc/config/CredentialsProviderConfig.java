@@ -11,6 +11,8 @@ public class CredentialsProviderConfig {
 
     /**
      * Reads the secret through the async connector, which caches it for the configured TTL.
+     * Mono.defer makes every subscription (one per new physical connection) ask the connector again, so an expired
+     * cache entry is refreshed and rotated credentials are picked up.
      * The concrete connector is injected on purpose: the GenericManagerAsync interface declares a checked
      * SecretException that would force a try-catch, while the implementation reports failures as error signals.
      */
@@ -19,7 +21,7 @@ public class CredentialsProviderConfig {
     public DatabaseCredentialsProvider secretsManagerCredentialsProvider(AWSSecretManagerConnectorAsync connector,
                                                                          PostgresProperties properties) {
         String secretName = properties.credentials().secretName();
-        return () -> connector.getSecret(secretName, DatabaseCredentials.class);
+        return () -> Mono.defer(() -> connector.getSecret(secretName, DatabaseCredentials.class));
     }
 
     /**

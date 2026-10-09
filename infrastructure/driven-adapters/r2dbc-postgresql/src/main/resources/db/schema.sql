@@ -1,4 +1,4 @@
--- Idempotent schema, executed by Spring Boot SQL initialization on every startup.
+-- Idempotent schema, applied by SchemaInitializerConfig on every startup.
 -- Several replicas may start at the same time; the advisory lock serialises them because concurrent
 -- "CREATE TABLE IF NOT EXISTS" statements can still collide in the PostgreSQL catalog.
 SELECT pg_advisory_lock(727274);
