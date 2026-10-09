@@ -244,8 +244,17 @@ BlockHound is installed in every test JVM. A blocking call on a non-blocking thr
 | `DB_SSL_MODE` | R2DBC SSL mode (`disable` in the local profile) | `require` |
 | `DB_SECRET_NAME` | Name of the Secrets Manager secret with `{"username","password"}` (e.g. the RDS-managed secret) | — |
 | `AWS_REGION` | Region of Secrets Manager | `us-east-1` |
+| `DB_CONNECT_TIMEOUT` / `DB_STATEMENT_TIMEOUT` | TCP connect timeout / server-side statement timeout | `5s` / `3s` |
 | `DB_POOL_INITIAL_SIZE` / `DB_POOL_MAX_SIZE` | Connection pool size | `2` / `10` |
+| `DB_POOL_MAX_IDLE_TIME` / `DB_POOL_MAX_LIFE_TIME` / `DB_POOL_MAX_ACQUIRE_TIME` | Pool connection lifecycle | `10m` / `30m` / `3s` |
 | `DB_TIMEOUT` | Time limiter per database call | `2s` |
+| `DB_CB_SLIDING_WINDOW_TYPE` / `DB_CB_SLIDING_WINDOW_SIZE` / `DB_CB_MIN_NUMBER_CALLS` | Circuit breaker window | `COUNT_BASED` / `20` / `10` |
+| `DB_CB_FAILURE_RATE_THRESHOLD` / `DB_CB_SLOW_CALL_RATE_THRESHOLD` / `DB_CB_SLOW_CALL_DURATION_THRESHOLD` | Circuit breaker thresholds | `50` / `80` / `1s` |
+| `DB_CB_WAIT_DURATION_OPEN_STATE` / `DB_CB_MAX_WAIT_DURATION_HALF_OPEN_STATE` / `DB_CB_PERMITTED_CALLS_HALF_OPEN_STATE` / `DB_CB_AUTO_TRANS_OPEN_TO_HALF_OPEN_STATE` | Circuit breaker state transitions | `15s` / `30s` / `3` / `true` |
+| `DB_CB_IGNORE_EXCEPTIONS` | Exceptions that never count as failures | `DataIntegrityViolationException` |
+| `DB_RETRY_MAX_ATTEMPTS` / `DB_RETRY_WAIT_DURATION` / `DB_RETRY_EXPONENTIAL_BACKOFF_MULTIPLIER` | Retry with exponential backoff | `3` / `100ms` / `2` |
+| `DB_RETRY_EXCEPTIONS` | Exceptions that are retried | transient data access errors, `TimeoutException` |
+| `SECRETS_CACHE_SECONDS` / `SECRETS_CACHE_SIZE` | Secrets Manager connector cache | `300` / `10` |
 | `DB_INITIALIZE_SCHEMA` | Apply `db/schema.sql` on startup | `true` |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins | `http://localhost:4200,http://localhost:8080` |
 | `SWAGGER_UI_ENABLED` | Serve Swagger UI | `true` |
@@ -314,7 +323,7 @@ Every database call goes through `ResiliencePolicy`. The operators are composed 
   does not mean the row was not written. **Streams are not retried** either, because re-subscribing after a partial
   emission would duplicate elements.
 
-All thresholds live in `application.yaml` (`resilience4j.*`).
+Every threshold and timeout can be tuned per environment through variables (see [Configuration](#configuration)).
 
 ### Secrets and credential rotation
 
