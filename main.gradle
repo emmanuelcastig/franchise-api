@@ -1,11 +1,8 @@
-
 allprojects {
     repositories {
-        //mavenLocal()
         mavenCentral()
     }
 
-    // Force dependency versions to address reported vulnerabilities.
     configurations.configureEach {
         resolutionStrategy.eachDependency { DependencyResolveDetails details ->
             if (details.requested.group == 'com.fasterxml.jackson.core' && details.requested.name == 'jackson-core') {
@@ -31,8 +28,6 @@ subprojects {
         }
     }
 
-
-    // -parameters keeps method parameter names in bytecode; Spring Data needs them to bind named @Query parameters.
     tasks.withType(JavaCompile).configureEach {
         options.compilerArgs.add('-parameters')
     }
@@ -58,7 +53,6 @@ subprojects {
         implementation platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
     }
 
-    // Remove once it has been updated in Spring Boot
     ext['jackson-2-bom.version'] = "2.22.3"
     ext['jackson-bom.version'] = "3.2.3"
 
@@ -72,7 +66,6 @@ subprojects {
 
     test.finalizedBy(project.tasks.jacocoTestReport)
 
-    // Quality gate: `gradlew check` fails when a module drops below 80% line coverage.
     jacocoTestCoverageVerification {
         dependsOn test
         classDirectories.setFrom(files(classDirectories.files.collect {
@@ -88,7 +81,6 @@ subprojects {
         }
     }
     check.dependsOn jacocoTestCoverageVerification
-
 
     jacocoTestReport {
         dependsOn test

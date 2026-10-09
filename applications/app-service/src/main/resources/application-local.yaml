@@ -1,4 +1,3 @@
-# Local development only: disposable credentials of the docker-compose database.
 adapters:
   r2dbc:
     ssl-mode: "disable"

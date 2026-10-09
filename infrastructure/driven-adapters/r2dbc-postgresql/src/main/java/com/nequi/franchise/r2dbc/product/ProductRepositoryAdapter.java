@@ -19,10 +19,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ProductRepositoryAdapter implements ProductRepository {
 
-    /**
-     * Ordered by branch so rows of the same branch are contiguous, as the port contract requires.
-     * The unique index (branch_id, name) on product and (franchise_id, name) on branch back this join.
-     */
     private static final String STOCKS_BY_FRANCHISE = """
             SELECT b.id   AS branch_id,
                    b.name AS branch_name,
@@ -81,7 +77,7 @@ public class ProductRepositoryAdapter implements ProductRepository {
     }
 
     @Override
-    public Flux<BranchProductStock> findStocksByFranchiseId(UUID franchiseId) {
+    public Flux<BranchProductStock> findStocksGroupedByBranch(UUID franchiseId) {
         return resilience.stream(databaseClient.sql(STOCKS_BY_FRANCHISE)
                         .bind("franchiseId", franchiseId)
                         .map(ProductRepositoryAdapter::toBranchProductStock)

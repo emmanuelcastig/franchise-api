@@ -12,14 +12,6 @@ import org.springframework.r2dbc.connection.init.ResourceDatabasePopulator;
 
 import java.io.IOException;
 
-/**
- * Applies the idempotent schema once, while the context starts and before the server accepts traffic.
- * <p>
- * Spring Boot's SQL initializer streams the script from the jar on the thread that acquired the connection,
- * an event-loop thread, which BlockHound reports as blocking I/O. Here the script bytes are loaded eagerly on the
- * main thread, so the reactive pipeline only reads from memory. Disable it with
- * {@code adapters.r2dbc.initialize-schema=false} when migrations run as a separate deployment step.
- */
 @Configuration
 @ConditionalOnProperty(prefix = "adapters.r2dbc", name = "initialize-schema", havingValue = "true", matchIfMissing = true)
 public class SchemaInitializerConfig {

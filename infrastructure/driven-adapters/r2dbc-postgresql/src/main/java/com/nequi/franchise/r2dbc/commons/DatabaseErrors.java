@@ -13,10 +13,6 @@ import org.springframework.dao.TransientDataAccessException;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
-/**
- * Anti-corruption layer for persistence errors: nothing from Spring Data, R2DBC or Resilience4j leaks into the
- * domain. Applied with {@code onErrorMap}, after the resilience operators have seen the original exception.
- */
 @UtilityClass
 public class DatabaseErrors {
 
@@ -29,10 +25,6 @@ public class DatabaseErrors {
         };
     }
 
-    /**
-     * A unique constraint is the race-free guarantee behind the "unique name" rule: if two requests pass the
-     * use case pre-check at the same time, the database rejects the second insert or rename.
-     */
     public static Function<Throwable, Throwable> translateDuplicateNameTo(TechnicalMessage duplicateNameMessage) {
         return error -> switch (error) {
             case DuplicateKeyException _ -> new BusinessException(duplicateNameMessage);

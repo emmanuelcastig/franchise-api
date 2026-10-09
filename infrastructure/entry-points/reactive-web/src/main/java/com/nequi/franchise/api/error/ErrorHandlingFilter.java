@@ -24,10 +24,6 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.List;
 
-/**
- * Functional counterpart of an aspect around every handler: it translates error signals into RFC 9457
- * problem responses with onErrorResume, so handlers only describe the happy path.
- */
 @Slf4j
 @Component
 public class ErrorHandlingFilter implements HandlerFilterFunction<ServerResponse, ServerResponse> {
@@ -59,9 +55,6 @@ public class ErrorHandlingFilter implements HandlerFilterFunction<ServerResponse
         return respond(problem);
     }
 
-    /**
-     * Framework rejections such as a malformed JSON body (ServerWebInputException) or an unsupported media type.
-     */
     private Mono<ServerResponse> frameworkError(ServerRequest request, ResponseStatusException error) {
         log.info("Request rejected {} {}: {}", request.method(), request.path(), error.getMessage());
         ProblemDetail problem = problem(request, error.getStatusCode(),

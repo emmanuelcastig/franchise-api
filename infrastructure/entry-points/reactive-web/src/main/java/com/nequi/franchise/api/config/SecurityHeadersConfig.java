@@ -10,9 +10,6 @@ import reactor.core.publisher.Mono;
 @Component
 public class SecurityHeadersConfig implements WebFilter {
 
-    /**
-     * Swagger UI needs inline styles and scripts; everything else is restricted to the same origin.
-     */
     static final String CONTENT_SECURITY_POLICY = "default-src 'self'; script-src 'self' 'unsafe-inline'; "
             + "style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'; form-action 'self'";
 

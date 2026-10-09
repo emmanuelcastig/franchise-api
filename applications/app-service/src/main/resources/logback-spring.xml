@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <!-- Context properties are added to every JSON log event by the logstash encoder. -->
     <springProperty scope="context" name="application" source="spring.application.name"/>
 
-    <!-- Human readable output for local development and tests. -->
     <springProfile name="local">
         <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
         <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
@@ -12,7 +10,6 @@
         </root>
     </springProfile>
 
-    <!-- One JSON document per line, so CloudWatch Logs Insights can query fields directly. -->
     <springProfile name="!local">
         <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
             <encoder class="net.logstash.logback.encoder.LogstashEncoder">

@@ -14,10 +14,6 @@ import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-/**
- * Validates the HTTP contract reactively: every check emits the valid value or an
- * {@link InvalidRequestException}, so handlers compose them with flatMap/zip instead of branching.
- */
 @Component
 @RequiredArgsConstructor
 public class RequestValidator {
@@ -27,10 +23,6 @@ public class RequestValidator {
 
     private final Validator validator;
 
-    /**
-     * Hibernate Validator reads its message bundles from the classpath the first time a constraint fails.
-     * Triggering that once at startup keeps the file I/O off the event loop (BlockHound flags it otherwise).
-     */
     @PostConstruct
     void warmUp() {
         validator.validate(new WarmUpSample(null));
@@ -42,9 +34,6 @@ public class RequestValidator {
                 .flatMap(this::validate);
     }
 
-    /**
-     * UUID.fromString accepts non-canonical values such as "1-1-1-1-1", so the format is checked first.
-     */
     public Mono<UUID> uuid(ServerRequest request, String pathVariable) {
         return Mono.just(request.pathVariable(pathVariable))
                 .filter(CANONICAL_UUID)

@@ -30,10 +30,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Runs the adapters against a real PostgreSQL to validate SQL, mappings, constraints and the schema script.
- * Skipped automatically when no Docker-compatible runtime is available.
- */
 @SpringBootTest(classes = PostgresAdaptersIntegrationTest.TestApplication.class)
 @ActiveProfiles("local")
 @Testcontainers(disabledWithoutDocker = true)
@@ -182,7 +178,7 @@ class PostgresAdaptersIntegrationTest {
                         .then(newBranch(franchise.id(), "C - Empty"))
                         .thenReturn(franchise.id()));
 
-        StepVerifier.create(franchiseWithData.flatMapMany(products::findStocksByFranchiseId)
+        StepVerifier.create(franchiseWithData.flatMapMany(products::findStocksGroupedByBranch)
                         .map(BranchProductStock::branchName))
                 .expectNext("A - Downtown", "A - Downtown", "B - Uptown", "B - Uptown")
                 .verifyComplete();

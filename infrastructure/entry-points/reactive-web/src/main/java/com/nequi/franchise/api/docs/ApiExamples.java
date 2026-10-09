@@ -2,9 +2,6 @@ package com.nequi.franchise.api.docs;
 
 import lombok.experimental.UtilityClass;
 
-/**
- * Request and response examples rendered by Swagger UI.
- */
 @UtilityClass
 public class ApiExamples {
 

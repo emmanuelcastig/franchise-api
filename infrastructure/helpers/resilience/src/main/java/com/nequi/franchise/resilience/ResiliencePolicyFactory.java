@@ -6,10 +6,6 @@ import io.github.resilience4j.timelimiter.TimeLimiterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-/**
- * Builds {@link ResiliencePolicy} instances from the registries that resilience4j-spring-boot populates with the
- * {@code resilience4j.*} configuration, so thresholds live in application.yaml instead of code.
- */
 @Component
 @RequiredArgsConstructor
 public class ResiliencePolicyFactory {

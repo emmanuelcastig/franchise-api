@@ -19,10 +19,6 @@ public class PostgresConnectionPoolConfig {
     public static final String DATABASE_RESILIENCE_INSTANCE = "database";
     private static final String APPLICATION_NAME = "franchise-api";
 
-    /**
-     * Username and password are handed to the driver as publishers: they are resolved reactively every time the
-     * pool opens a physical connection, so no secret is fetched (or blocked on) while the context starts.
-     */
     @Bean
     public ConnectionPool connectionPool(PostgresProperties properties, DatabaseCredentialsProvider credentialsProvider) {
         Mono<DatabaseCredentials> credentials = credentialsProvider.credentials();
@@ -55,11 +51,6 @@ public class PostgresConnectionPoolConfig {
         return new ConnectionPool(poolConfiguration);
     }
 
-    /**
-     * The default sliding window guards its counters with a ReentrantLock, which parks event-loop threads under
-     * contention (BlockHound reports it). The lock-free window records outcomes with CAS operations instead.
-     * The strategy is not exposed as a YAML property, hence the customizer.
-     */
     @Bean
     public CircuitBreakerConfigCustomizer databaseCircuitBreakerCustomizer() {
         return CircuitBreakerConfigCustomizer.of(DATABASE_RESILIENCE_INSTANCE,

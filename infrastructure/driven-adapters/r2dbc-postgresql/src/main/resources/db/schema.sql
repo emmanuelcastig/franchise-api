@@ -1,6 +1,3 @@
--- Idempotent schema, applied by SchemaInitializerConfig on every startup.
--- Several replicas may start at the same time; the advisory lock serialises them because concurrent
--- "CREATE TABLE IF NOT EXISTS" statements can still collide in the PostgreSQL catalog.
 SELECT pg_advisory_lock(727274);
 
 CREATE TABLE IF NOT EXISTS franchise
@@ -13,7 +10,6 @@ CREATE TABLE IF NOT EXISTS franchise
     CONSTRAINT uk_franchise_name UNIQUE (name)
 );
 
--- The unique index (franchise_id, name) also serves every lookup by franchise_id (leftmost column).
 CREATE TABLE IF NOT EXISTS branch
 (
     id           UUID         NOT NULL DEFAULT gen_random_uuid(),

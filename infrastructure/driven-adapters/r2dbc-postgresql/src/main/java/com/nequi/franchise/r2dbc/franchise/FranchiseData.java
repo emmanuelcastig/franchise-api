@@ -6,9 +6,6 @@ import org.springframework.data.relational.core.mapping.Table;
 
 import java.util.UUID;
 
-/**
- * A null id marks a new row: Spring Data issues an INSERT and PostgreSQL generates the UUID.
- */
 @Table("franchise")
 public record FranchiseData(@Id UUID id, String name) {
 
