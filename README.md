@@ -37,7 +37,7 @@ non-blocking end to end, from the HTTP server to the database driver, and the te
   a rotated password is picked up without a restart. Nothing sensitive is stored in code or environment variables.
 - **Errors as [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) problem details** (`application/problem+json`), with a
   stable error `code`.
-- **105 tests, 99% line coverage**: unit (StepVerifier + Mockito), adapter integration and end-to-end tests against a
+- **111 tests, 99% line coverage**: unit (StepVerifier + Mockito), adapter integration and end-to-end tests against a
   real PostgreSQL (Testcontainers). `./gradlew check` fails if any module drops below 80% line coverage.
 
 ## Architecture
@@ -258,6 +258,8 @@ BlockHound is installed in every test JVM. A blocking call on a non-blocking thr
 | `DB_INITIALIZE_SCHEMA` | Apply `db/schema.sql` on startup | `true` |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins | `http://localhost:4200,http://localhost:8080` |
 | `SWAGGER_UI_ENABLED` | Serve Swagger UI | `true` |
+| `LOG_LEVEL_ROOT` / `LOG_LEVEL_APP` | Log level of the root logger / of `com.nequi.franchise` | `INFO` / `INFO` |
+| `TRACING_SAMPLING_PROBABILITY` | Fraction of traces sampled | `0.1` |
 | `DB_USERNAME` / `DB_PASSWORD` | **Local profile only**: credentials of the local database | `franchise` / `franchise` |
 
 ## Design notes
@@ -351,6 +353,31 @@ Running the suite with BlockHound surfaced four real blocking calls on event-loo
    Fixed by loading the script bytes on the main thread (`SchemaInitializerConfig`).
 4. **springdoc**: it scans the classpath on the first `/v3/api-docs` request. Fixed with
    `springdoc.pre-loading-enabled=true`.
+
+### Logs and correlation
+
+Logs are JSON documents (logstash encoder) with the team's message convention:
+
+- Handlers log `<Operation> Handler [REQUEST]` and `[RESPONSE]`. The error filter logs `[BUSINESS ERROR]`,
+  `[TECHNICAL ERROR]`, `[INVALID REQUEST]` and `[UNEXPECTED ERROR]`.
+- Adapters log `<Operation> [REQUEST]`, `[RESPONSE]` and `[ERROR]` through `doOnSubscribe`, `doOnSuccess` and
+  `doOnError`.
+- Resilience4j events are logged too: `Circuit Breaker [STATE TRANSITION]`, `[CALL NOT PERMITTED]`,
+  `Retry [ATTEMPT]`, `Retry [EXHAUSTED]` and `Time Limiter [TIMEOUT]`.
+
+Payloads travel as structured fields (`kv(...)`), not inside the message text. `password` and `username` are masked.
+
+Every request carries an `x-message-id`: the client's value, or a generated UUID if it is missing. The id is
+returned in the response header and propagated as Micrometer Tracing baggage. With Reactor's automatic context
+propagation (`spring.reactor.context-propagation=auto`), it reaches the MDC on every thread the request hops through,
+so all its lines share `x-message-id` and `traceId`:
+
+```json
+{"message":"Save Franchise [RESPONSE]","thread_name":"reactor-tcp-nio-1","x-message-id":"65f9d3a5-…","traceId":"35824d07…","response":{"id":"b2c3…","name":"Pizza Town"}}
+```
+
+Log levels are configurable with `LOG_LEVEL_ROOT` and `LOG_LEVEL_APP`, and trace sampling with
+`TRACING_SAMPLING_PROBABILITY`.
 
 ### Container image
 

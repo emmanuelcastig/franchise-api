@@ -51,6 +51,10 @@ subprojects {
         testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
         testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
         implementation platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+        if (!['model', 'usecase'].contains(project.name)) {
+            implementation 'ch.qos.logback:logback-classic'
+            implementation "net.logstash.logback:logstash-logback-encoder:${logstashLogbackVersion}"
+        }
     }
 
     ext['jackson-2-bom.version'] = "2.22.3"

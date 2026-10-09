@@ -9,7 +9,9 @@ dependencies {
     implementation project(':model')
     implementation project(':usecase')
     implementation 'org.springframework.boot:spring-boot-starter'
-    implementation 'net.logstash.logback:logstash-logback-encoder:9.0'
+    implementation('org.springframework.boot:spring-boot-starter-opentelemetry') {
+        exclude group: 'io.opentelemetry', module: 'opentelemetry-exporter-otlp'
+    }
     testImplementation 'com.tngtech.archunit:archunit:1.5.1'
     testImplementation 'tools.jackson.core:jackson-databind'
     testImplementation 'org.springframework.boot:spring-boot-starter-webflux-test'
