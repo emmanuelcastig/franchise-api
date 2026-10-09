@@ -37,7 +37,7 @@ non-blocking end to end, from the HTTP server to the database driver, and the te
   a rotated password is picked up without a restart. Nothing sensitive is stored in code or environment variables.
 - **Errors as [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) problem details** (`application/problem+json`), with a
   stable error `code`.
-- **111 tests, 99% line coverage**: unit (StepVerifier + Mockito), adapter integration and end-to-end tests against a
+- **137 tests, 99% line coverage**: unit (StepVerifier + Mockito), adapter integration and end-to-end tests against a
   real PostgreSQL (Testcontainers). `./gradlew check` fails if any module drops below 80% line coverage.
 
 ## Architecture
@@ -222,6 +222,7 @@ Health probes: `GET /actuator/health/liveness` and `GET /actuator/health/readine
 
 | Level | Where | What it proves |
 |---|---|---|
+| Unit | `domain/model` | Domain rules and contracts: name and stock rules, top-stock ranking with deterministic tie-break, unique error codes, sealed exception hierarchy. Records without behaviour have no tests. |
 | Unit | `domain/usecase` | Business scenarios with `StepVerifier` + Mockito: validation, hierarchy, uniqueness, idempotent rename, top-stock ranking, demand-driven streaming with 1,000 branches. |
 | Unit | `helpers/resilience`, `r2dbc/commons` | Retries only on transient errors and only for idempotent calls, time limiter cancellation, circuit opening, error translation. |
 | Slice | `reactive-web` | `@WebFluxTest` of every route: status codes, problem details, validation, CORS and security headers. |
