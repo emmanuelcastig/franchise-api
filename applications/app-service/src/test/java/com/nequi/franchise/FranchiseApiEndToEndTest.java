@@ -145,6 +145,19 @@ class FranchiseApiEndToEndTest {
     }
 
     @Test
+    @DisplayName("the x-message-id sent by the client is echoed, and one is generated when it is missing")
+    void messageIdIsPropagated() {
+        client.get().uri(FRANCHISES + "/{franchiseId}/top-stock-products", UUID.randomUUID())
+                .header("x-message-id", "client-message-id")
+                .exchange()
+                .expectHeader().valueEquals("x-message-id", "client-message-id");
+
+        client.get().uri(FRANCHISES + "/{franchiseId}/top-stock-products", UUID.randomUUID())
+                .exchange()
+                .expectHeader().value("x-message-id", messageId -> UUID.fromString(messageId));
+    }
+
+    @Test
     @DisplayName("the readiness probe used by the load balancer reports UP")
     void readinessProbe() {
         client.get().uri("/actuator/health/readiness")

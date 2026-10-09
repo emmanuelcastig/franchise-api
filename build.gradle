@@ -8,6 +8,7 @@ buildscript {
         lombokVersion = '1.18.48'
         resilience4jVersion = '2.4.0'
         secretsManagerVersion = '4.5.3'
+        logstashLogbackVersion = '9.0'
 	}
 }
 

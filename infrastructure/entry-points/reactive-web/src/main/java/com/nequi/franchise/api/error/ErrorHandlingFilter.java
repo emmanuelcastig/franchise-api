@@ -1,5 +1,7 @@
 package com.nequi.franchise.api.error;
 
+import com.nequi.franchise.api.utils.Constants.LogKeys;
+import com.nequi.franchise.api.utils.Constants.LogMessages.Errors;
 import com.nequi.franchise.api.validation.FieldViolation;
 import com.nequi.franchise.api.validation.InvalidRequestException;
 import com.nequi.franchise.model.enums.ErrorType;
@@ -23,6 +25,8 @@ import reactor.core.publisher.Mono;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;
+
+import static net.logstash.logback.argument.StructuredArguments.kv;
 
 @Slf4j
 @Component
@@ -48,7 +52,8 @@ public class ErrorHandlingFilter implements HandlerFilterFunction<ServerResponse
     }
 
     private Mono<ServerResponse> invalidRequest(ServerRequest request, InvalidRequestException error) {
-        log.info("Invalid request {} {}: {}", request.method(), request.path(), error.getViolations());
+        log.info(Errors.INVALID_REQUEST, kv(LogKeys.METHOD, request.method()), kv(LogKeys.PATH, request.path()),
+                kv(LogKeys.ERRORS, error.getViolations()));
         ProblemDetail problem = problem(request, HttpStatus.BAD_REQUEST,
                 TechnicalMessage.INVALID_REQUEST.getCode(), TechnicalMessage.INVALID_REQUEST.getMessage());
         problem.setProperty(ERRORS, error.getViolations());
@@ -56,7 +61,8 @@ public class ErrorHandlingFilter implements HandlerFilterFunction<ServerResponse
     }
 
     private Mono<ServerResponse> frameworkError(ServerRequest request, ResponseStatusException error) {
-        log.info("Request rejected {} {}: {}", request.method(), request.path(), error.getMessage());
+        log.info(Errors.REJECTED_REQUEST, kv(LogKeys.METHOD, request.method()), kv(LogKeys.PATH, request.path()),
+                kv(LogKeys.ERROR, error.getMessage()));
         ProblemDetail problem = problem(request, error.getStatusCode(),
                 TechnicalMessage.INVALID_REQUEST.getCode(), TechnicalMessage.INVALID_REQUEST.getMessage());
         problem.setProperty(ERRORS, List.of(new FieldViolation("body", error.getReason())));
@@ -64,17 +70,18 @@ public class ErrorHandlingFilter implements HandlerFilterFunction<ServerResponse
     }
 
     private Mono<ServerResponse> unexpectedError(ServerRequest request, Throwable error) {
-        log.error("Unexpected error {} {}", request.method(), request.path(), error);
+        log.error(Errors.UNEXPECTED, kv(LogKeys.METHOD, request.method()), kv(LogKeys.PATH, request.path()), error);
         TechnicalMessage message = TechnicalMessage.UNEXPECTED_ERROR;
         return respond(problem(request, HttpStatus.INTERNAL_SERVER_ERROR, message.getCode(), message.getMessage()));
     }
 
     private static void logDomainError(ServerRequest request, DomainException error) {
         switch (error) {
-            case BusinessException business -> log.info("Business rule rejected {} {}: {}",
-                    request.method(), request.path(), business.getTechnicalMessage().getCode());
-            case TechnicalException technical -> log.error("Technical failure on {} {}: {}",
-                    request.method(), request.path(), technical.getTechnicalMessage().getCode(), technical);
+            case BusinessException business -> log.info(Errors.BUSINESS, kv(LogKeys.METHOD, request.method()),
+                    kv(LogKeys.PATH, request.path()), kv(LogKeys.CODE, business.getTechnicalMessage().getCode()));
+            case TechnicalException technical -> log.error(Errors.TECHNICAL, kv(LogKeys.METHOD, request.method()),
+                    kv(LogKeys.PATH, request.path()), kv(LogKeys.CODE, technical.getTechnicalMessage().getCode()),
+                    technical);
         }
     }
 
