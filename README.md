@@ -225,7 +225,7 @@ can be run repeatedly against the same database.
   npx @usebruno/cli run --env local -r
   ```
 
-For AWS, set `baseUrl` in `environments/aws.bru` to the load balancer URL.
+The `aws` environment reads the API URL from `docs/bruno/.env` (`FRANCHISE_API_URL`). `iac/scripts/deploy.sh` writes that file, or you can copy `.env.example`.
 
 Health probes: `GET /actuator/health/liveness` and `GET /actuator/health/readiness`. Metrics: `GET /actuator/prometheus`.
 

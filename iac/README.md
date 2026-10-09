@@ -35,6 +35,9 @@ iac/
 - **Linking stacks:** the service stack finds the transversal resources by name and tag through `data` sources.
 - **Secrets:** RDS generates the master password in Secrets Manager. The container receives only the secret ARN and
   reads the secret with its task role, which may read that secret alone.
+- **Application settings:** values derived from the infrastructure (database host, secret ARN, region) are built in
+  `locals.tf`. Settings tuned per environment (timeouts, pool, circuit breaker, retry, log levels) are listed in
+  `app_environment` of each tfvars; any variable left out uses the default of `application.yaml`.
 - **Defaults:** modules are secure by default (deletion protection, final snapshot, backups). `dev` relaxes them in its
   tfvars so it can be destroyed after use.
 
@@ -50,7 +53,7 @@ on Windows).
 ```
 
 - `deploy.sh` tags the image with the current commit. ECR tags are immutable, so commit your changes first.
-- `deploy.sh` prints the API, Swagger and health URLs when it finishes.
+- `deploy.sh` prints the API, Swagger and health URLs when it finishes, and writes the API URL to `docs/bruno/.env` for the Bruno `aws` environment.
 - `apply` and `destroy` ask for confirmation unless `AUTO_APPROVE=true`.
 - To use another Terraform binary, set `TERRAFORM=/path/to/terraform`.
 
