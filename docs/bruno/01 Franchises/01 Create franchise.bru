@@ -1,0 +1,38 @@
+meta {
+  name: Create franchise
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/franchises
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "{{franchiseName}}"
+  }
+}
+
+script:pre-request {
+  bru.setVar("franchiseName", `Burger Town ${Date.now()}`);
+}
+
+script:post-response {
+  bru.setVar("franchiseId", res.getBody().id);
+}
+
+tests {
+  test("responds 201 with a generated id", function () {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().id).to.match(/^[0-9a-f-]{36}$/);
+    expect(res.getBody().name).to.equal(bru.getVar("franchiseName"));
+  });
+}
+
+docs {
+  Creates the franchise used by the rest of the collection. The name gets a timestamp so the
+  collection can be run repeatedly against the same database.
+}

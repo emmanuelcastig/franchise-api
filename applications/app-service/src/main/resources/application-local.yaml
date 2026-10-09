@@ -1,0 +1,6 @@
+adapters:
+  r2dbc:
+    ssl-mode: "disable"
+    credentials:
+      username: ${DB_USERNAME:franchise}
+      password: ${DB_PASSWORD:franchise}

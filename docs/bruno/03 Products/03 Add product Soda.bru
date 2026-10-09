@@ -1,0 +1,29 @@
+meta {
+  name: Add product Soda
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/franchises/{{franchiseId}}/branches/{{uptownId}}/products
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Soda",
+    "stock": 80
+  }
+}
+
+script:post-response {
+  bru.setVar("sodaId", res.getBody().id);
+}
+
+tests {
+  test("responds 201 with the stock", function () {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().stock).to.equal(80);
+  });
+}

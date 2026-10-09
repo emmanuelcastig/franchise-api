@@ -1,14 +1,106 @@
-##Spring Configuration
 server:
-  port: 8080
+  port: "${SERVER_PORT:8080}"
+  shutdown: "graceful"
+
 spring:
   application:
-    name: franchise-api
-  devtools:
-    add-properties: false
-  h2:
-    console:
-      enabled: true
-      path: /h2
+    name: "franchise-api"
+    version: "1.0.0"
   profiles:
-    include:
+    active: "${SPRING_PROFILES_ACTIVE:default}"
+  lifecycle:
+    timeout-per-shutdown-phase: "${SHUTDOWN_TIMEOUT:20s}"
+  reactor:
+    context-propagation: "auto"
+
+adapters:
+  r2dbc:
+    host: "${DB_HOST:localhost}"
+    port: "${DB_PORT:5432}"
+    database: "${DB_NAME:franchise}"
+    schema: "${DB_SCHEMA:public}"
+    ssl-mode: "${DB_SSL_MODE:require}"
+    initialize-schema: "${DB_INITIALIZE_SCHEMA:true}"
+    connect-timeout: "${DB_CONNECT_TIMEOUT:5s}"
+    statement-timeout: "${DB_STATEMENT_TIMEOUT:3s}"
+    pool:
+      initial-size: "${DB_POOL_INITIAL_SIZE:2}"
+      max-size: "${DB_POOL_MAX_SIZE:10}"
+      max-idle-time: "${DB_POOL_MAX_IDLE_TIME:10m}"
+      max-life-time: "${DB_POOL_MAX_LIFE_TIME:30m}"
+      max-acquire-time: "${DB_POOL_MAX_ACQUIRE_TIME:10s}"
+    credentials:
+      secret-name: "${DB_SECRET_NAME:}"
+  secrets-manager:
+    region: "${AWS_REGION:us-east-1}"
+    cache-seconds: "${SECRETS_CACHE_SECONDS:300}"
+    cache-size: "${SECRETS_CACHE_SIZE:10}"
+
+resilience4j:
+  timelimiter:
+    instances:
+      database:
+        timeout-duration: "${DB_TIMEOUT:2s}"
+        cancel-running-future: "${DB_TIMEOUT_CANCEL_RUNNING_FUTURE:true}"
+  circuitbreaker:
+    instances:
+      database:
+        sliding-window-type: "${DB_CB_SLIDING_WINDOW_TYPE:COUNT_BASED}"
+        sliding-window-size: "${DB_CB_SLIDING_WINDOW_SIZE:20}"
+        minimum-number-of-calls: "${DB_CB_MIN_NUMBER_CALLS:10}"
+        failure-rate-threshold: "${DB_CB_FAILURE_RATE_THRESHOLD:50}"
+        slow-call-rate-threshold: "${DB_CB_SLOW_CALL_RATE_THRESHOLD:80}"
+        slow-call-duration-threshold: "${DB_CB_SLOW_CALL_DURATION_THRESHOLD:1s}"
+        wait-duration-in-open-state: "${DB_CB_WAIT_DURATION_OPEN_STATE:15s}"
+        max-wait-duration-in-half-open-state: "${DB_CB_MAX_WAIT_DURATION_HALF_OPEN_STATE:30s}"
+        permitted-number-of-calls-in-half-open-state: "${DB_CB_PERMITTED_CALLS_HALF_OPEN_STATE:3}"
+        automatic-transition-from-open-to-half-open-enabled: "${DB_CB_AUTO_TRANS_OPEN_TO_HALF_OPEN_STATE:true}"
+        ignore-exceptions: "${DB_CB_IGNORE_EXCEPTIONS:org.springframework.dao.DataIntegrityViolationException}"
+  retry:
+    instances:
+      database:
+        max-attempts: "${DB_RETRY_MAX_ATTEMPTS:3}"
+        wait-duration: "${DB_RETRY_WAIT_DURATION:100ms}"
+        enable-exponential-backoff: "${DB_RETRY_EXPONENTIAL_BACKOFF_ENABLED:true}"
+        exponential-backoff-multiplier: "${DB_RETRY_EXPONENTIAL_BACKOFF_MULTIPLIER:2}"
+        retry-exceptions: "${DB_RETRY_EXCEPTIONS:org.springframework.dao.TransientDataAccessException,org.springframework.dao.DataAccessResourceFailureException,java.util.concurrent.TimeoutException}"
+
+springdoc:
+  pre-loading-enabled: true
+  api-docs:
+    path: "/v3/api-docs"
+  swagger-ui:
+    path: "/swagger-ui.html"
+    enabled: "${SWAGGER_UI_ENABLED:true}"
+
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
+  tracing:
+    sampling:
+      probability: "${TRACING_SAMPLING_PROBABILITY:0.1}"
+    baggage:
+      correlation:
+        fields:
+          - "x-message-id"
+      remote-fields:
+        - "x-message-id"
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,prometheus"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: "never"
+
+logging:
+  level:
+    root: "${LOG_LEVEL_ROOT:INFO}"
+    com.nequi.franchise: "${LOG_LEVEL_APP:INFO}"
+
+cors:
+  allowed-origins: "${CORS_ALLOWED_ORIGINS:http://localhost:4200,http://localhost:8080}"

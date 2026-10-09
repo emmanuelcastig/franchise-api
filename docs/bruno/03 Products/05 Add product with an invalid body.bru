@@ -1,0 +1,29 @@
+meta {
+  name: Add product with an invalid body
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/franchises/{{franchiseId}}/branches/{{downtownId}}/products
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "",
+    "stock": -1
+  }
+}
+
+tests {
+  test("responds 400 FRN-400 as problem+json", function () {
+    expect(res.getStatus()).to.equal(400);
+    expect(res.getHeader("content-type")).to.contain("application/problem+json");
+    expect(res.getBody().code).to.equal("FRN-400");
+  });
+  test("reports every violated field", function () {
+    expect(res.getBody().errors.map(e => e.field)).to.have.members(["name", "stock"]);
+  });
+}

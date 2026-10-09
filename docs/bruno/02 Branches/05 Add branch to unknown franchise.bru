@@ -1,0 +1,25 @@
+meta {
+  name: Add branch to unknown franchise
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/franchises/00000000-0000-0000-0000-000000000000/branches
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Downtown"
+  }
+}
+
+tests {
+  test("responds 404 FRN-404 as problem+json", function () {
+    expect(res.getStatus()).to.equal(404);
+    expect(res.getHeader("content-type")).to.contain("application/problem+json");
+    expect(res.getBody().code).to.equal("FRN-404");
+  });
+}

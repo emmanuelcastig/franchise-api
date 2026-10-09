@@ -1,0 +1,29 @@
+meta {
+  name: Add product with a malformed identifier
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/v1/franchises/not-a-uuid/branches/{{downtownId}}/products
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Fries",
+    "stock": 1
+  }
+}
+
+tests {
+  test("responds 400 FRN-400 as problem+json", function () {
+    expect(res.getStatus()).to.equal(400);
+    expect(res.getHeader("content-type")).to.contain("application/problem+json");
+    expect(res.getBody().code).to.equal("FRN-400");
+  });
+  test("names the path variable", function () {
+    expect(res.getBody().errors[0].field).to.equal("franchiseId");
+  });
+}

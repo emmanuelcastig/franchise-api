@@ -1,0 +1,22 @@
+meta {
+  name: Message id is echoed
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/franchises/{{franchiseId}}/top-stock-products
+  body: none
+  auth: none
+}
+
+headers {
+  x-message-id: bruno-correlation-check
+}
+
+tests {
+  test("returns the x-message-id sent by the client", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getHeader("x-message-id")).to.equal("bruno-correlation-check");
+  });
+}

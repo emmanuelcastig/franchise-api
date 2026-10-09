@@ -1,11 +1,8 @@
-
 allprojects {
     repositories {
-        //mavenLocal()
         mavenCentral()
     }
 
-    // Force dependency versions to address reported vulnerabilities.
     configurations.configureEach {
         resolutionStrategy.eachDependency { DependencyResolveDetails details ->
             if (details.requested.group == 'com.fasterxml.jackson.core' && details.requested.name == 'jackson-core') {
@@ -31,12 +28,16 @@ subprojects {
         }
     }
 
+    tasks.withType(JavaCompile).configureEach {
+        options.compilerArgs.add('-parameters')
+    }
 
     test {
         useJUnitPlatform()
     }
 
     dependencies {
+        implementation platform('software.amazon.awssdk:bom:2.55.11')
         implementation 'io.projectreactor:reactor-core'
         implementation 'io.projectreactor.addons:reactor-extra'
 
@@ -50,9 +51,12 @@ subprojects {
         testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
         testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
         implementation platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+        if (!['model', 'usecase'].contains(project.name)) {
+            implementation 'ch.qos.logback:logback-classic'
+            implementation "net.logstash.logback:logstash-logback-encoder:${logstashLogbackVersion}"
+        }
     }
 
-    // Remove once it has been updated in Spring Boot
     ext['jackson-2-bom.version'] = "2.22.3"
     ext['jackson-bom.version'] = "3.2.3"
 
@@ -66,6 +70,21 @@ subprojects {
 
     test.finalizedBy(project.tasks.jacocoTestReport)
 
+    jacocoTestCoverageVerification {
+        dependsOn test
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['**/MainApplication*'])
+        }))
+        violationRules {
+            rule {
+                limit {
+                    counter = 'LINE'
+                    minimum = 0.80
+                }
+            }
+        }
+    }
+    check.dependsOn jacocoTestCoverageVerification
 
     jacocoTestReport {
         dependsOn test
@@ -95,12 +114,6 @@ tasks.register('jacocoMergedReport', JacocoReport) {
         csv.setRequired false
         html.setRequired true
     }
-}
-
-tasks.withType(JavaCompile).configureEach {
-    options.compilerArgs = [
-            '-Amapstruct.suppressGeneratorTimestamp=true'
-    ]
 }
 
 tasks.named('wrapper') {

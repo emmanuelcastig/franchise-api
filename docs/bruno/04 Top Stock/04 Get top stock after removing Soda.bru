@@ -1,0 +1,18 @@
+meta {
+  name: Get top stock after removing Soda
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/franchises/{{franchiseId}}/top-stock-products
+  body: none
+  auth: none
+}
+
+tests {
+  test("the next best product of the branch takes its place", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody()[1]).to.include({ branchName: "Midtown", productName: "Double Burger", stock: 30 });
+  });
+}

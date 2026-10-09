@@ -1,0 +1,24 @@
+meta {
+  name: Rename branch
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/franchises/{{franchiseId}}/branches/{{uptownId}}/name
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Midtown"
+  }
+}
+
+tests {
+  test("responds 200 with the new name", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().name).to.equal("Midtown");
+  });
+}

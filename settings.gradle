@@ -1,6 +1,5 @@
 pluginManagement {
     repositories {
-        //mavenLocal()
         gradlePluginPortal()
     }
 }
@@ -19,3 +18,9 @@ include ':usecase'
 project(':app-service').projectDir = file('./applications/app-service')
 project(':model').projectDir = file('./domain/model')
 project(':usecase').projectDir = file('./domain/usecase')
+include ':r2dbc-postgresql'
+project(':r2dbc-postgresql').projectDir = file('./infrastructure/driven-adapters/r2dbc-postgresql')
+include ':resilience'
+project(':resilience').projectDir = file('./infrastructure/helpers/resilience')
+include ':reactive-web'
+project(':reactive-web').projectDir = file('./infrastructure/entry-points/reactive-web')
