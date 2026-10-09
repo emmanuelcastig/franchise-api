@@ -17,7 +17,6 @@ non-blocking end to end, from the HTTP server to the database driver, and the te
 - [Getting started](#getting-started)
 - [Testing](#testing)
 - [Configuration](#configuration)
-- [Design notes](#design-notes)
 - [Project structure](#project-structure)
 - [Git workflow](#git-workflow)
 
@@ -250,8 +249,7 @@ Health probes: `GET /actuator/health/liveness` and `GET /actuator/health/readine
 Integration and end-to-end tests need a Docker-compatible runtime (Docker or Podman). Without one they are **skipped**,
 not failed. No test uses `.block()`.
 
-BlockHound is installed in every test JVM. A blocking call on a non-blocking thread fails the test (see
-[what it caught](#what-blockhound-caught)).
+BlockHound is installed in every test JVM. A blocking call on a non-blocking thread fails the test.
 
 ## Configuration
 
@@ -279,134 +277,6 @@ BlockHound is installed in every test JVM. A blocking call on a non-blocking thr
 | `LOG_LEVEL_ROOT` / `LOG_LEVEL_APP` | Log level of the root logger / of `com.nequi.franchise` | `INFO` / `INFO` |
 | `TRACING_SAMPLING_PROBABILITY` | Fraction of traces sampled | `0.1` |
 | `DB_USERNAME` / `DB_PASSWORD` | **Local profile only**: credentials of the local database | `franchise` / `franchise` |
-
-## Design notes
-
-### Reactive end to end and backpressure
-
-Reactor Netty reads requests and writes responses without blocking. Handlers return `Mono<ServerResponse>`, and the
-R2DBC driver talks to PostgreSQL over non-blocking sockets. Backpressure is the Reactive Streams `request(n)` protocol:
-a subscriber states how many elements it can take, and the publisher never emits more.
-
-It matters most in the top-stock query. Rows stream from the database, and Reactor only requests more when downstream
-operators are ready, so memory does not depend on how many products a franchise has. At the HTTP edge, Netty
-propagates TCP backpressure: when the socket is not writable, demand stops flowing upstream. A test checks that only
-the requested number of results is produced (`StepVerifier.create(flux, 2)` … `thenRequest(3)`).
-
-### Product with the highest stock per branch
-
-```java
-franchiseRepository.findById(franchiseId)
-        .switchIfEmpty(Mono.error(() -> new BusinessException(FRANCHISE_NOT_FOUND)))
-        .flatMapMany(franchise -> productRepository.findStocksGroupedByBranch(franchise.id()))
-        .windowUntilChanged(BranchProductStock::branchId)
-        .concatMap(branchStocks -> branchStocks.reduce(BranchProductStock::higherRanked));
-```
-
-The port guarantees that rows of the same branch are contiguous (`ORDER BY b.name, b.id`). `windowUntilChanged` closes
-each window as soon as the branch changes, and `reduce` keeps a single candidate, so memory is constant.
-`groupBy` + `flatMap` was rejected on purpose: groups only complete when the whole source completes, so with more than
-256 branches (the default `flatMap` concurrency) the pipeline stalls. A test with 1,000 branches covers this. The
-ranking rule (highest stock, ties broken by name) lives in the domain record, not in SQL.
-
-### Error handling without try/catch
-
-Domain errors are a `sealed` hierarchy (`DomainException` permits `BusinessException` and `TechnicalException`).
-Adapters translate persistence errors with `onErrorMap`, an anti-corruption layer that keeps Spring Data, R2DBC and
-Resilience4j exceptions out of the domain. A single `HandlerFilterFunction` (the functional equivalent of an aspect
-around handlers) turns error signals into problem responses with `onErrorResume`. An exhaustive `switch` maps the
-transport-agnostic `ErrorType` to HTTP statuses.
-
-### Consistency and concurrency
-
-- **No read-modify-write of whole rows**: renaming and setting the stock each run one targeted
-  `UPDATE ... RETURNING`, so a concurrent stock change can never overwrite a rename.
-- **Uniqueness**: the use case checks the name first, which gives a precise error and keeps the rule visible in the
-  domain. The database `UNIQUE` constraint is the race-free guarantee; if two requests pass the check at the same
-  time, the constraint rejects one and the adapter maps it to the same `409`.
-- **Idempotency**: stock is an absolute value, `PUT` is idempotent, and renaming to the current name is a no-op
-  success. This is what makes retries safe.
-
-### Resilience
-
-Every database call goes through `ResiliencePolicy`. The operators are composed as
-`Retry( CircuitBreaker( TimeLimiter( call ) ) )`:
-
-- **Timeout**: 2 s per attempt (time limiter). A server-side `statement_timeout` of 3 s also stops queries that keep
-  running after the client gave up.
-- **Circuit breaker**: opens at a 50% failure rate or 80% slow calls over 20 calls, and fails fast with `503` while
-  open. Constraint violations are ignored because they are business outcomes, not failures. It uses the
-  **lock-free** sliding window (see below).
-- **Retry**: 3 attempts with exponential backoff (100 ms, 200 ms), only for transient errors (connection failures,
-  timeouts). Never for an open circuit or a business error.
-- **What is retried**: reads, single-column updates and deletes only. **Inserts are not retried**, because a timeout
-  does not mean the row was not written. **Streams are not retried** either, because re-subscribing after a partial
-  emission would duplicate elements.
-
-Every threshold and timeout can be tuned per environment through variables (see [Configuration](#configuration)).
-
-### Secrets and credential rotation
-
-```java
-PostgresqlConnectionConfiguration.builder()
-        .username(credentials.map(DatabaseCredentials::username))
-        .password(credentials.<CharSequence>map(DatabaseCredentials::password))
-```
-
-The R2DBC driver accepts **publishers** for username and password and subscribes once per new physical connection.
-The publisher defers to Bancolombia's async Secrets Manager connector, which caches the secret for 5 minutes.
-Combined with a 30-minute maximum connection lifetime in the pool, a rotated RDS password is picked up without a
-restart, and no secret is read or blocked on while the application starts. In AWS the connector authenticates with
-the ECS task role. The only configuration is the secret *name*.
-
-### What BlockHound caught
-
-Running the suite with BlockHound surfaced four real blocking calls on event-loop threads. All four are fixed:
-
-1. **Resilience4j circuit breaker**: the default sliding window guards its counters with a `ReentrantLock`, which
-   parks Netty threads under contention. Fixed by switching to the `LOCK_FREE` synchronization strategy.
-2. **Hibernate Validator**: it loads its message bundles from the jar the first time a constraint fails. Fixed by
-   warming the validator up at startup.
-3. **Spring Boot SQL initializer**: it streams `schema.sql` from the jar on the thread that obtained the connection.
-   Fixed by loading the script bytes on the main thread (`SchemaInitializerConfig`).
-4. **springdoc**: it scans the classpath on the first `/v3/api-docs` request. Fixed with
-   `springdoc.pre-loading-enabled=true`.
-
-### Logs and correlation
-
-Logs are JSON documents (logstash encoder) with the team's message convention:
-
-- Handlers log `<Operation> Handler [REQUEST]` and `[RESPONSE]`. The error filter logs `[BUSINESS ERROR]`,
-  `[TECHNICAL ERROR]`, `[INVALID REQUEST]` and `[UNEXPECTED ERROR]`.
-- Adapters log `<Operation> [REQUEST]`, `[RESPONSE]` and `[ERROR]` through `doOnSubscribe`, `doOnSuccess` and
-  `doOnError`.
-- Resilience4j events are logged too: `Circuit Breaker [STATE TRANSITION]`, `[CALL NOT PERMITTED]`,
-  `Retry [ATTEMPT]`, `Retry [EXHAUSTED]` and `Time Limiter [TIMEOUT]`.
-
-Payloads travel as structured fields (`kv(...)`), not inside the message text. `password` and `username` are masked.
-
-Every request carries an `x-message-id`: the client's value, or a generated UUID if it is missing. The id is
-returned in the response header and propagated as Micrometer Tracing baggage. With Reactor's automatic context
-propagation (`spring.reactor.context-propagation=auto`), it reaches the MDC on every thread the request hops through,
-so all its lines share `x-message-id` and `traceId`:
-
-```json
-{"message":"Save Franchise [RESPONSE]","thread_name":"reactor-tcp-nio-1","x-message-id":"65f9d3a5-…","traceId":"35824d07…","response":{"id":"b2c3…","name":"Pizza Town"}}
-```
-
-Log levels are configurable with `LOG_LEVEL_ROOT` and `LOG_LEVEL_APP`, and trace sampling with
-`TRACING_SAMPLING_PROBABILITY`.
-
-### Container image
-
-The multi-stage `deployment/Dockerfile` compiles inside a JDK image, extracts Spring Boot layers so dependencies are
-cached apart from application code, and runs as a non-root user on a JRE. A training run builds a **JDK 25 AOT cache**
-(JEP 514/515), which speeds up the startup of tasks added by auto scaling.
-
-### Deployment (AWS)
-
-The deployment uses ECR, ECS Fargate behind an ALB with auto scaling, RDS PostgreSQL with an RDS-managed secret in
-Secrets Manager, and least-privilege IAM roles. It is provisioned with modular Terraform and lives in `iac/`.
 
 ## Project structure
 
