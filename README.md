@@ -281,7 +281,9 @@ BlockHound is installed in every test JVM. A blocking call on a non-blocking thr
 
 ## Deployment (AWS)
 
-The infrastructure is Terraform under `iac/`, split into stacks with their own remote state, as the team's IaC does.
+The API runs on ECS Fargate behind an Application Load Balancer, with RDS PostgreSQL in private subnets. The database
+credentials live in Secrets Manager and are read by the service at runtime. The infrastructure is Terraform, organised
+in stacks per environment (`dev`, `qa`, `pdn`).
 
 ```mermaid
 flowchart LR
@@ -304,61 +306,13 @@ flowchart LR
     ecs --> nat
 ```
 
-| Root | What it creates | State key |
-|---|---|---|
-| `iac/bootstrap` | S3 bucket for the remote state: versioned, encrypted, public access blocked, TLS-only | local (one-time) |
-| `iac/stacks/transversal` | VPC (public and private subnets, NAT, S3 gateway endpoint), ECS cluster, ALB, RDS PostgreSQL, ECR | `franchise-api/transversal/<env>/terraform.tfstate` |
-| `iac/stacks/franchise-api` | ECS service and task definition, task and execution roles, target group and listener rule, auto scaling, logs, DB ingress rule | `franchise-api/franchise-api/<env>/terraform.tfstate` |
-
-Reusable modules live in `iac/modules` (`network`, `ecs-cluster`, `alb`, `database`, `ecr`, `ecs-service`).
-
-- **Environments:** `dev`, `qa` and `pdn` (the team's names for dev, staging and prod) come from the same modules with per-environment values in `env/<env>/terraform-<env>.tfvars` and backend settings in `env/<env>/backend.hcl`. No workspaces are used.
-- **State:** S3 backend with native locking (`use_lockfile`, Terraform >= 1.10), so no DynamoDB table is needed.
-- **Linking stacks:** the service stack finds the transversal resources by name and tag (`data` sources), so the stacks stay decoupled.
-- **Secrets:** RDS generates and stores the master password in Secrets Manager (`manage_master_user_password`). The container gets only the secret ARN (`DB_SECRET_NAME`) and reads it with its task role, which may call `GetSecretValue` on that secret alone.
-- **Least privilege:**
-  - The execution role can only pull from its repository and write to its log group.
-  - The tasks accept traffic only from the ALB security group, and the database only from the service security group.
-  - Task egress is limited to HTTPS and the database port.
-- **Resilience:**
-  - The deployment circuit breaker rolls back failed deployments.
-  - The ALB checks `/actuator/health/readiness` and the container checks `/actuator/health/liveness`.
-  - Target tracking scales on CPU and on ALB requests per target.
-- **Reproducibility:** providers are pinned exactly, and `.terraform.lock.hcl` files are committed with hashes for Linux, macOS and Windows.
-
-### Cost of `dev` (us-east-1, approximate)
-
-| Resource | Size | USD / hour |
-|---|---|---|
-| NAT gateway | 1 | 0.045 |
-| Application Load Balancer | 1 | ~0.03 |
-| RDS PostgreSQL | db.t4g.micro, 20 GiB gp3 | ~0.02 |
-| Fargate Spot | 1 task, 0.5 vCPU / 1 GiB | ~0.01 |
-| Public IPv4 addresses | 3 | 0.015 |
-| **Total** | | **~0.12** (about USD 3 a day) |
-
-`dev` is meant to be created for a demo and destroyed afterwards: deletion protection is off, there is no final snapshot and the ECR repository is force-deleted. `pdn` turns all of that back on, with Multi-AZ, one NAT per zone, on-demand Fargate and at least three tasks.
-
-### Deploy
-
-Prerequisites: AWS CLI with credentials for the target account, Terraform >= 1.10, Docker or Podman, Git Bash on Windows.
-
 ```bash
-./iac/scripts/bootstrap.sh       # once per account: creates the state bucket
-./iac/scripts/deploy.sh dev      # transversal stack -> image build and push to ECR -> service stack
+./iac/scripts/bootstrap.sh       # once per account: remote state bucket
+./iac/scripts/deploy.sh dev      # infrastructure, image build and push, service
+./iac/scripts/destroy.sh dev     # tear the environment down
 ```
 
-`deploy.sh` tags the image with the current commit. ECR tags are immutable, so commit your changes first. At the end it prints the API, Swagger and health URLs. Set `baseUrl` in `docs/bruno/environments/aws.bru` to the API URL to run the Bruno collection against AWS.
-
-Every `apply` and `destroy` asks for confirmation; `AUTO_APPROVE=true` skips the prompts.
-
-### Destroy
-
-```bash
-./iac/scripts/destroy.sh dev     # service stack, then transversal stack
-```
-
-The state bucket is kept for the next deployment.
+Requirements, layout and options are described in [iac/README.md](iac/README.md).
 
 ## Project structure
 
