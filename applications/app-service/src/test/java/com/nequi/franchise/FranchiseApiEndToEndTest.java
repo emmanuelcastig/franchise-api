@@ -20,11 +20,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Boots the whole service (Netty, handlers, use cases, R2DBC pool, schema script) against a real PostgreSQL and
- * walks through every endpoint. BlockHound is active in the test JVM, so any blocking call on an event-loop thread
- * along the way fails the test.
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
 @ActiveProfiles("local")

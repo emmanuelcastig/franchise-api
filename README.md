@@ -269,7 +269,7 @@ the requested number of results is produced (`StepVerifier.create(flux, 2)` … 
 ```java
 franchiseRepository.findById(franchiseId)
         .switchIfEmpty(Mono.error(() -> new BusinessException(FRANCHISE_NOT_FOUND)))
-        .flatMapMany(franchise -> productRepository.findStocksByFranchiseId(franchise.id()))
+        .flatMapMany(franchise -> productRepository.findStocksGroupedByBranch(franchise.id()))
         .windowUntilChanged(BranchProductStock::branchId)
         .concatMap(branchStocks -> branchStocks.reduce(BranchProductStock::higherRanked));
 ```

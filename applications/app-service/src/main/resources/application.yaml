@@ -1,6 +1,5 @@
 server:
   port: "${SERVER_PORT:8080}"
-  # Lets in-flight requests finish when ECS stops a task (SIGTERM) after the ALB deregisters it.
   shutdown: "graceful"
 
 spring:
@@ -19,20 +18,16 @@ adapters:
     database: "${DB_NAME:franchise}"
     schema: "${DB_SCHEMA:public}"
     ssl-mode: "${DB_SSL_MODE:require}"
-    # Idempotent schema script (CREATE TABLE IF NOT EXISTS) applied at startup; see SchemaInitializerConfig.
     initialize-schema: "${DB_INITIALIZE_SCHEMA:true}"
     connect-timeout: "5s"
-    # Server-side guard: stops queries that keep running after the time limiter has cancelled the client call.
     statement-timeout: "3s"
     pool:
       initial-size: "${DB_POOL_INITIAL_SIZE:2}"
       max-size: "${DB_POOL_MAX_SIZE:10}"
       max-idle-time: "10m"
-      # Recycling connections lets rotated credentials take effect without a restart.
       max-life-time: "30m"
       max-acquire-time: "3s"
     credentials:
-      # Only the secret NAME is configuration; the credentials themselves never leave Secrets Manager.
       secret-name: "${DB_SECRET_NAME:}"
   secrets-manager:
     region: "${AWS_REGION:us-east-1}"
@@ -57,7 +52,6 @@ resilience4j:
         wait-duration-in-open-state: "15s"
         permitted-number-of-calls-in-half-open-state: 3
         automatic-transition-from-open-to-half-open-enabled: true
-        # Constraint violations are business outcomes (e.g. duplicated name), not signs of an unhealthy database.
         ignore-exceptions:
           - "org.springframework.dao.DataIntegrityViolationException"
   retry:
@@ -67,14 +61,12 @@ resilience4j:
         wait-duration: "100ms"
         enable-exponential-backoff: true
         exponential-backoff-multiplier: 2
-        # Only transient failures are retried; CallNotPermittedException (open circuit) fails fast.
         retry-exceptions:
           - "org.springframework.dao.TransientDataAccessException"
           - "org.springframework.dao.DataAccessResourceFailureException"
           - "java.util.concurrent.TimeoutException"
 
 springdoc:
-  # Builds the OpenAPI model at startup; otherwise the first request scans the classpath on an event-loop thread.
   pre-loading-enabled: true
   api-docs:
     path: "/v3/api-docs"
@@ -89,7 +81,6 @@ management:
         include: "health,info,prometheus"
   endpoint:
     health:
-      # /actuator/health/liveness and /actuator/health/readiness, used by the ALB target group health check.
       probes:
         enabled: true
       show-details: "never"

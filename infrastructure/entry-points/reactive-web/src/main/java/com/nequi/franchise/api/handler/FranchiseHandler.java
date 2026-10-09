@@ -38,10 +38,6 @@ public class FranchiseHandler {
                 .flatMap(response -> ServerResponse.ok().bodyValue(response));
     }
 
-    /**
-     * The aggregation streams rows from the database with backpressure; only the result (one entry per branch)
-     * is collected, so errors such as FRANCHISE_NOT_FOUND surface before the response status is committed.
-     */
     public Mono<ServerResponse> getTopStockProducts(ServerRequest request) {
         return validator.uuid(request, FRANCHISE_ID)
                 .flatMapMany(topStockProductUseCase::findTopStockProductPerBranch)

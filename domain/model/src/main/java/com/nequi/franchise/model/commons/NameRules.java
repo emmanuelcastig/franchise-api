@@ -2,9 +2,6 @@ package com.nequi.franchise.model.commons;
 
 import lombok.experimental.UtilityClass;
 
-/**
- * Naming rule shared by franchises, branches and products.
- */
 @UtilityClass
 public class NameRules {
 

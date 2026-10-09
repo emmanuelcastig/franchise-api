@@ -21,9 +21,6 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.r
 @TestPropertySource(properties = "cors.allowed-origins=https://app.example.com")
 class WebConfigTest {
 
-    /**
-     * Absolute URL: CORS compares the Origin header with the request host, which a relative URI does not have.
-     */
     private static final String API_URL = "https://api.example.com/ping";
 
     @Autowired

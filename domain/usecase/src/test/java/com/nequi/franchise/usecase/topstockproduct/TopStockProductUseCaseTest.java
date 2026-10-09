@@ -54,7 +54,7 @@ class TopStockProductUseCaseTest {
         givenFranchiseExists();
         BranchProductStock downtownTop = stock(DOWNTOWN_ID, "Downtown", "Fries", 50);
         BranchProductStock uptownTop = stock(UPTOWN_ID, "Uptown", "Soda", 80);
-        when(productRepository.findStocksByFranchiseId(FRANCHISE_ID)).thenReturn(Flux.just(
+        when(productRepository.findStocksGroupedByBranch(FRANCHISE_ID)).thenReturn(Flux.just(
                 stock(DOWNTOWN_ID, "Downtown", "Cheeseburger", 10),
                 downtownTop,
                 stock(DOWNTOWN_ID, "Downtown", "Shake", 5),
@@ -71,7 +71,7 @@ class TopStockProductUseCaseTest {
     void breaksTiesByProductName() {
         givenFranchiseExists();
         BranchProductStock apple = stock(DOWNTOWN_ID, "Downtown", "Apple Pie", 20);
-        when(productRepository.findStocksByFranchiseId(FRANCHISE_ID)).thenReturn(Flux.just(
+        when(productRepository.findStocksGroupedByBranch(FRANCHISE_ID)).thenReturn(Flux.just(
                 stock(DOWNTOWN_ID, "Downtown", "Brownie", 20),
                 apple,
                 stock(DOWNTOWN_ID, "Downtown", "Cookie", 20)));
@@ -85,7 +85,7 @@ class TopStockProductUseCaseTest {
     @DisplayName("completes empty when the franchise has no products")
     void completesEmptyWithoutProducts() {
         givenFranchiseExists();
-        when(productRepository.findStocksByFranchiseId(FRANCHISE_ID)).thenReturn(Flux.empty());
+        when(productRepository.findStocksGroupedByBranch(FRANCHISE_ID)).thenReturn(Flux.empty());
 
         StepVerifier.create(useCase.findTopStockProductPerBranch(FRANCHISE_ID))
                 .verifyComplete();
@@ -115,7 +115,7 @@ class TopStockProductUseCaseTest {
                             stock(branchId, "Branch " + index, "Low", 1),
                             stock(branchId, "Branch " + index, "High", 2));
                 });
-        when(productRepository.findStocksByFranchiseId(FRANCHISE_ID)).thenReturn(rows);
+        when(productRepository.findStocksGroupedByBranch(FRANCHISE_ID)).thenReturn(rows);
 
         StepVerifier.create(useCase.findTopStockProductPerBranch(FRANCHISE_ID))
                 .expectNextCount(branches)
@@ -128,7 +128,7 @@ class TopStockProductUseCaseTest {
         givenFranchiseExists();
         Flux<BranchProductStock> rows = Flux.range(0, 10)
                 .map(index -> stock(UUID.randomUUID(), "Branch " + index, "Item", index));
-        when(productRepository.findStocksByFranchiseId(FRANCHISE_ID)).thenReturn(rows);
+        when(productRepository.findStocksGroupedByBranch(FRANCHISE_ID)).thenReturn(rows);
 
         StepVerifier.create(useCase.findTopStockProductPerBranch(FRANCHISE_ID), 2)
                 .expectNextCount(2)

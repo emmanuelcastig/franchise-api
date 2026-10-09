@@ -5,10 +5,6 @@ import lombok.Getter;
 
 import java.util.List;
 
-/**
- * The HTTP contract was not honoured (missing body, malformed identifier, constraint violations).
- * It belongs to the entry point: the domain never sees requests that fail here.
- */
 @Getter
 public class InvalidRequestException extends RuntimeException {
 

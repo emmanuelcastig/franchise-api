@@ -21,9 +21,6 @@ public record PostgresProperties(
                        Duration maxAcquireTime) {
     }
 
-    /**
-     * Either a Secrets Manager secret name (cloud) or a username/password pair (local profile only).
-     */
     public record Credentials(String secretName, String username, String password) {
 
         @Override
