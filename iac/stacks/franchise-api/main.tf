@@ -36,5 +36,5 @@ resource "aws_vpc_security_group_ingress_rule" "database_from_service" {
   ip_protocol                  = "tcp"
   from_port                    = data.aws_db_instance.selected.port
   to_port                      = data.aws_db_instance.selected.port
-  description                  = "PostgreSQL from ${module.ecs_service.service_name}"
+  description                  = "PostgreSQL from svc-${local.micro_standard_sufix_name}"
 }

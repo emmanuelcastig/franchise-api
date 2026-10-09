@@ -23,12 +23,12 @@ COPY --from=layers --chown=app:app /layers/extracted/spring-boot-loader/ ./
 COPY --from=layers --chown=app:app /layers/extracted/snapshot-dependencies/ ./
 COPY --from=layers --chown=app:app /layers/extracted/application/ ./
 USER app
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError --enable-native-access=ALL-UNNAMED" \
+    TZ="America/Bogota"
 
 RUN DB_INITIALIZE_SCHEMA=false java -XX:AOTCacheOutput=franchise-api.aot -Dspring.context.exit=onRefresh \
     -jar franchise-api.jar
 
-ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError --enable-native-access=ALL-UNNAMED" \
-    TZ="America/Bogota"
 EXPOSE 8080
 HEALTHCHECK --interval=15s --timeout=3s --start-period=40s --retries=3 \
     CMD wget -qO- http://localhost:8080/actuator/health/liveness || exit 1
