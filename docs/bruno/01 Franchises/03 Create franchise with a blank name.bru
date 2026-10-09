@@ -1,0 +1,28 @@
+meta {
+  name: Create franchise with a blank name
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/franchises
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": " "
+  }
+}
+
+tests {
+  test("responds 400 FRN-400 as problem+json", function () {
+    expect(res.getStatus()).to.equal(400);
+    expect(res.getHeader("content-type")).to.contain("application/problem+json");
+    expect(res.getBody().code).to.equal("FRN-400");
+  });
+  test("reports the violated field", function () {
+    expect(res.getBody().errors[0].field).to.equal("name");
+  });
+}

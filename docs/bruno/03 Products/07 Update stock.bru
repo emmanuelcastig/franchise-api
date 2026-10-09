@@ -1,0 +1,24 @@
+meta {
+  name: Update stock
+  type: http
+  seq: 7
+}
+
+put {
+  url: {{baseUrl}}/api/v1/franchises/{{franchiseId}}/branches/{{downtownId}}/products/{{shakeId}}/stock
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "stock": 90
+  }
+}
+
+tests {
+  test("responds 200 with the absolute stock", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().stock).to.equal(90);
+  });
+}

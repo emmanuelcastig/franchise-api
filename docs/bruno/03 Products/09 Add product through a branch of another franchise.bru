@@ -1,0 +1,26 @@
+meta {
+  name: Add product through a branch of another franchise
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/api/v1/franchises/00000000-0000-0000-0000-000000000000/branches/{{downtownId}}/products
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Pepperoni",
+    "stock": 1
+  }
+}
+
+tests {
+  test("responds 404 FRN-405 as problem+json", function () {
+    expect(res.getStatus()).to.equal(404);
+    expect(res.getHeader("content-type")).to.contain("application/problem+json");
+    expect(res.getBody().code).to.equal("FRN-405");
+  });
+}

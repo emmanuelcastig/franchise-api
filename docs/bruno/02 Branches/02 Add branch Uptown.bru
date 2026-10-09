@@ -1,0 +1,27 @@
+meta {
+  name: Add branch Uptown
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/franchises/{{franchiseId}}/branches
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Uptown"
+  }
+}
+
+script:post-response {
+  bru.setVar("uptownId", res.getBody().id);
+}
+
+tests {
+  test("responds 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+}

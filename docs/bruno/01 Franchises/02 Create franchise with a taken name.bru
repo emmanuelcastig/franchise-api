@@ -1,0 +1,25 @@
+meta {
+  name: Create franchise with a taken name
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/franchises
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "{{franchiseName}}"
+  }
+}
+
+tests {
+  test("responds 409 FRN-409 as problem+json", function () {
+    expect(res.getStatus()).to.equal(409);
+    expect(res.getHeader("content-type")).to.contain("application/problem+json");
+    expect(res.getBody().code).to.equal("FRN-409");
+  });
+}
