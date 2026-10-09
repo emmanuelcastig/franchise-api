@@ -1,0 +1,35 @@
+spring:
+  sql:
+    init:
+      mode: "always"
+      schema-locations: "classpath:db/schema.sql"
+
+adapters:
+  r2dbc:
+    schema: "public"
+    ssl-mode: "disable"
+    connect-timeout: "5s"
+    statement-timeout: "3s"
+    pool:
+      initial-size: 1
+      max-size: 4
+      max-idle-time: "1m"
+      max-life-time: "5m"
+      max-acquire-time: "5s"
+
+resilience4j:
+  timelimiter:
+    instances:
+      database:
+        timeout-duration: "5s"
+  circuitbreaker:
+    instances:
+      database:
+        ignore-exceptions:
+          - "org.springframework.dao.DataIntegrityViolationException"
+  retry:
+    instances:
+      database:
+        max-attempts: 2
+        retry-exceptions:
+          - "org.springframework.dao.TransientDataAccessException"
