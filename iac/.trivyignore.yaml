@@ -1,0 +1,21 @@
+misconfigurations:
+  - id: AWS-0053
+    paths:
+      - "modules/alb/main.tf"
+    statement: The API is public by design; the load balancer is the only internet-facing component.
+  - id: AWS-0054
+    paths:
+      - "modules/alb/main.tf"
+    statement: HTTPS is enabled by setting alb_certificate_arn; without an owned domain there is no ACM certificate, so dev serves HTTP.
+  - id: AWS-0104
+    paths:
+      - "modules/ecs-service/security-group.tf"
+    statement: Egress is limited to port 443 for AWS public endpoints (Secrets Manager, ECR, CloudWatch Logs), which have no managed prefix list; interface VPC endpoints would remove it at extra cost.
+  - id: AWS-0132
+    paths:
+      - "bootstrap/main.tf"
+    statement: The state bucket uses SSE-S3 to avoid customer managed key charges; access is private and TLS-only.
+  - id: AWS-0176
+    paths:
+      - "modules/database/main.tf"
+    statement: The application authenticates with the RDS-managed secret in Secrets Manager, not with IAM database tokens.
