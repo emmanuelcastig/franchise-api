@@ -1,0 +1,5 @@
+dependencies {
+    implementation 'org.springframework:spring-context'
+    implementation "io.github.resilience4j:resilience4j-reactor:${resilience4jVersion}"
+    implementation "io.github.resilience4j:resilience4j-spring-boot4:${resilience4jVersion}"
+}
