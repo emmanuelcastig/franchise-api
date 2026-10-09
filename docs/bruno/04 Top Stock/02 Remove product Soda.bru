@@ -1,0 +1,17 @@
+meta {
+  name: Remove product Soda
+  type: http
+  seq: 2
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/franchises/{{franchiseId}}/branches/{{uptownId}}/products/{{sodaId}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("responds 204", function () {
+    expect(res.getStatus()).to.equal(204);
+  });
+}

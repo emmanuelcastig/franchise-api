@@ -210,6 +210,23 @@ curl -s $BASE/<franchiseId>/top-stock-products
 curl -s -X DELETE $BASE/<franchiseId>/branches/<branchId>/products/<productId>
 ```
 
+### Bruno collection
+
+`docs/bruno` contains a [Bruno](https://www.usebruno.com/) collection that exercises the whole API in order:
+franchises, branches and products, top stock per branch, and the error cases (`400`, `404`, `409`). Requests pass ids
+to each other through variables, and each one carries assertions. Franchise names get a timestamp, so the collection
+can be run repeatedly against the same database.
+
+- **Desktop app**: open the `docs/bruno` folder, choose the `local` or `aws` environment, and run the collection.
+- **CLI**:
+
+  ```bash
+  cd docs/bruno
+  npx @usebruno/cli run --env local -r
+  ```
+
+For AWS, set `baseUrl` in `environments/aws.bru` to the load balancer URL.
+
 Health probes: `GET /actuator/health/liveness` and `GET /actuator/health/readiness`. Metrics: `GET /actuator/prometheus`.
 
 ## Testing
@@ -403,6 +420,7 @@ Secrets Manager, and least-privilege IAM roles. It is provisioned with modular T
 │   ├── entry-points/reactive-web
 │   └── helpers/resilience
 ├── deployment/Dockerfile
+├── docs/bruno                        # Bruno collection: every endpoint and error case, with assertions
 └── compose.yaml
 ```
 

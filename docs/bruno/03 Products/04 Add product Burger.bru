@@ -1,0 +1,29 @@
+meta {
+  name: Add product Burger
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/franchises/{{franchiseId}}/branches/{{uptownId}}/products
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Burger",
+    "stock": 30
+  }
+}
+
+script:post-response {
+  bru.setVar("burgerId", res.getBody().id);
+}
+
+tests {
+  test("responds 201 with the stock", function () {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().stock).to.equal(30);
+  });
+}

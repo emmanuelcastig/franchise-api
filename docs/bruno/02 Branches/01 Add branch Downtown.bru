@@ -1,0 +1,28 @@
+meta {
+  name: Add branch Downtown
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/franchises/{{franchiseId}}/branches
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Downtown"
+  }
+}
+
+script:post-response {
+  bru.setVar("downtownId", res.getBody().id);
+}
+
+tests {
+  test("responds 201 linked to the franchise", function () {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().franchiseId).to.equal(bru.getVar("franchiseId"));
+  });
+}

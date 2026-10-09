@@ -1,0 +1,19 @@
+meta {
+  name: Remove product Soda again
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/franchises/{{franchiseId}}/branches/{{uptownId}}/products/{{sodaId}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("responds 404 FRN-406 as problem+json", function () {
+    expect(res.getStatus()).to.equal(404);
+    expect(res.getHeader("content-type")).to.contain("application/problem+json");
+    expect(res.getBody().code).to.equal("FRN-406");
+  });
+}

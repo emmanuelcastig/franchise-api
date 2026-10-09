@@ -1,0 +1,19 @@
+meta {
+  name: Get top stock of unknown franchise
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/franchises/00000000-0000-0000-0000-000000000000/top-stock-products
+  body: none
+  auth: none
+}
+
+tests {
+  test("responds 404 FRN-404 as problem+json", function () {
+    expect(res.getStatus()).to.equal(404);
+    expect(res.getHeader("content-type")).to.contain("application/problem+json");
+    expect(res.getBody().code).to.equal("FRN-404");
+  });
+}
